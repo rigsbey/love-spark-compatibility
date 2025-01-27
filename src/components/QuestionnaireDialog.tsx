@@ -9,33 +9,39 @@ interface Question {
   id: number;
   text: string;
   options: string[];
+  stage: "self" | "partner";
 }
 
 const questions: Question[] = [
   {
     id: 1,
-    text: "Как вы проводите свободное время вместе?",
-    options: ["Активный отдых", "Спокойный досуг", "Смешанный формат"]
+    text: "Как вы проводите свободное время?",
+    options: ["Активный отдых", "Спокойный досуг", "Смешанный формат"],
+    stage: "self"
   },
   {
     id: 2,
     text: "Как вы решаете конфликты?",
-    options: ["Обсуждаем сразу", "Нужно время подумать", "Избегаем конфликтов"]
+    options: ["Обсуждаем сразу", "Нужно время подумать", "Избегаем конфликтов"],
+    stage: "self"
   },
   {
     id: 3,
     text: "Какие у вас общие цели?",
-    options: ["Семья и быт", "Карьера и развитие", "Путешествия и впечатления"]
+    options: ["Семья и быт", "Карьера и развитие", "Путешествия и впечатления"],
+    stage: "partner"
   },
   {
     id: 4,
-    text: "Как вы относитесь к финансам?",
-    options: ["Планируем вместе", "Раздельный бюджет", "Ситуативно"]
+    text: "Как ваш партнер относится к финансам?",
+    options: ["Планирует всё", "Тратит спонтанно", "Баланс экономии и трат"],
+    stage: "partner"
   },
   {
     id: 5,
-    text: "Что для вас важнее в отношениях?",
-    options: ["Стабильность", "Развитие", "Комфорт"]
+    text: "Что для вашего партнера важнее в отношениях?",
+    options: ["Стабильность", "Развитие", "Комфорт"],
+    stage: "partner"
   }
 ];
 
@@ -50,15 +56,37 @@ interface QuestionnaireDialogProps {
 const QuestionnaireDialog = ({ open, onOpenChange, date1, date2, onComplete }: QuestionnaireDialogProps) => {
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState<string[]>([]);
+  const [stage, setStage] = useState<"self" | "partner">("self");
 
-  const progress = ((currentQuestion) / questions.length) * 100;
+  const currentStageQuestions = questions.filter(q => q.stage === stage);
+  const totalQuestions = questions.length;
+  const currentStageProgress = (currentQuestion / totalQuestions) * 100;
+
+  const getStageTitle = () => {
+    return stage === "self" ? "О вас" : "О вашем партнере";
+  };
+
+  const getMotivationalMessage = () => {
+    const progress = currentStageProgress;
+    if (progress < 30) return "Отличное начало!";
+    if (progress < 60) return "Вы прекрасно справляетесь!";
+    if (progress < 90) return "Почти готово!";
+    return "Последний шаг!";
+  };
 
   const handleAnswer = (answer: string) => {
     const newAnswers = [...answers, answer];
     setAnswers(newAnswers);
 
     if (currentQuestion < questions.length - 1) {
-      setCurrentQuestion(prev => prev + 1);
+      setCurrentQuestion(prev => {
+        const nextQuestion = prev + 1;
+        const nextQuestionStage = questions[nextQuestion].stage;
+        if (stage !== nextQuestionStage) {
+          setStage(nextQuestionStage);
+        }
+        return nextQuestion;
+      });
     } else {
       const dateCompatibility = calculateDateCompatibility(date1, date2);
       const answerCompatibility = calculateAnswerCompatibility(newAnswers);
@@ -81,6 +109,7 @@ const QuestionnaireDialog = ({ open, onOpenChange, date1, date2, onComplete }: Q
       onOpenChange(false);
       setCurrentQuestion(0);
       setAnswers([]);
+      setStage("self");
     }
   };
 
@@ -103,19 +132,23 @@ const QuestionnaireDialog = ({ open, onOpenChange, date1, date2, onComplete }: Q
       <DialogContent className="sm:max-w-md bg-white shadow-lg backdrop-blur-lg border-none">
         <DialogHeader>
           <DialogTitle className="text-2xl font-pacifico text-accent text-center mb-4">
-            Тест на совместимость
+            {getStageTitle()}
           </DialogTitle>
         </DialogHeader>
         
         <div className="mb-6">
           <Progress 
-            value={progress} 
-            className="h-2 bg-gray-100" 
-            indicatorClassName="bg-accent transition-all duration-300 ease-in-out"
+            value={currentStageProgress} 
+            className="h-2 bg-gray-100"
           />
-          <span className="text-sm text-gray-600 mt-2 block text-center">
-            Вопрос {currentQuestion + 1} из {questions.length}
-          </span>
+          <div className="mt-2 text-center space-y-1">
+            <span className="text-sm text-gray-600 block">
+              Вопрос {currentQuestion + 1} из {totalQuestions}
+            </span>
+            <span className="text-sm text-accent font-medium block">
+              {getMotivationalMessage()}
+            </span>
+          </div>
         </div>
 
         <Card className="p-6 bg-white shadow-sm border border-gray-100 animate-fade-in">
