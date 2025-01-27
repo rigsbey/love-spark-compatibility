@@ -42,6 +42,7 @@ export default {
         custom: {
           pink: "#FFC1E3",
           blue: "#C1EFFF",
+          gold: "#FFD700",
         },
       },
       fontFamily: {
