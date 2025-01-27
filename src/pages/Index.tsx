@@ -43,14 +43,6 @@ const Index = () => {
   };
 
   const startFullTest = () => {
-    if (!date1 || !date2) {
-      toast({
-        title: "Пожалуйста, введите обе даты",
-        description: "Для начала теста необходимы обе даты рождения",
-        variant: "destructive",
-      });
-      return;
-    }
     setIsQuestionnaireOpen(true);
   };
 
@@ -58,6 +50,11 @@ const Index = () => {
     setDate1("");
     setDate2("");
     setResult(null);
+  };
+
+  const handleComplete = (result: TestResult) => {
+    setResult(result);
+    setIsQuestionnaireOpen(false);
   };
 
   return (
@@ -140,7 +137,7 @@ const Index = () => {
         onOpenChange={setIsQuestionnaireOpen}
         date1={date1}
         date2={date2}
-        onComplete={setResult}
+        onComplete={handleComplete}
       />
     </div>
   );
