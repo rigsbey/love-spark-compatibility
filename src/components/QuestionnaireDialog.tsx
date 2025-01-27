@@ -60,7 +60,6 @@ const QuestionnaireDialog = ({ open, onOpenChange, date1, date2, onComplete }: Q
     if (currentQuestion < questions.length - 1) {
       setCurrentQuestion(prev => prev + 1);
     } else {
-      // Calculate final result combining dates and answers
       const dateCompatibility = calculateDateCompatibility(date1, date2);
       const answerCompatibility = calculateAnswerCompatibility(newAnswers);
       const finalCompatibility = Math.round((dateCompatibility + answerCompatibility) / 2);
@@ -80,7 +79,6 @@ const QuestionnaireDialog = ({ open, onOpenChange, date1, date2, onComplete }: Q
 
       onComplete(result);
       onOpenChange(false);
-      // Reset for next time
       setCurrentQuestion(0);
       setAnswers([]);
     }
@@ -90,35 +88,38 @@ const QuestionnaireDialog = ({ open, onOpenChange, date1, date2, onComplete }: Q
     const timestamp1 = new Date(date1).getTime();
     const timestamp2 = new Date(date2).getTime();
     const difference = Math.abs(timestamp1 - timestamp2);
-    const maxDiff = 1000 * 60 * 60 * 24 * 365 * 10; // 10 years
+    const maxDiff = 1000 * 60 * 60 * 24 * 365 * 10;
     return Math.round(Math.max(0, Math.min(100, 100 - (difference / maxDiff) * 100)));
   };
 
   const calculateAnswerCompatibility = (answers: string[]): number => {
-    // Simple demo calculation - in real app would be more complex
-    const baseScore = 70; // Base compatibility score
-    const variation = answers.length * 5; // Each answer can affect up to 5 points
+    const baseScore = 70;
+    const variation = answers.length * 5;
     return Math.min(100, Math.max(0, baseScore + Math.random() * variation));
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md bg-white shadow-lg backdrop-blur-lg border-none">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-pacifico text-accent text-center">
+          <DialogTitle className="text-2xl font-pacifico text-accent text-center mb-4">
             Тест на совместимость
           </DialogTitle>
         </DialogHeader>
         
         <div className="mb-6">
-          <Progress value={progress} className="h-2" />
-          <span className="text-sm text-gray-500 mt-1">
+          <Progress 
+            value={progress} 
+            className="h-2 bg-gray-100" 
+            indicatorClassName="bg-accent transition-all duration-300 ease-in-out"
+          />
+          <span className="text-sm text-gray-600 mt-2 block text-center">
             Вопрос {currentQuestion + 1} из {questions.length}
           </span>
         </div>
 
-        <Card className="p-6 animate-fade-in">
-          <h3 className="text-lg font-semibold mb-4">
+        <Card className="p-6 bg-white shadow-sm border border-gray-100 animate-fade-in">
+          <h3 className="text-lg font-semibold mb-6 text-gray-800">
             {questions[currentQuestion].text}
           </h3>
           <div className="space-y-3">
@@ -126,7 +127,7 @@ const QuestionnaireDialog = ({ open, onOpenChange, date1, date2, onComplete }: Q
               <Button
                 key={index}
                 variant="outline"
-                className="w-full justify-start text-left"
+                className="w-full justify-start text-left py-4 px-6 bg-white hover:bg-accent/5 hover:border-accent transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] text-gray-700 hover:text-accent"
                 onClick={() => handleAnswer(option)}
               >
                 {option}
