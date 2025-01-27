@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Card } from "@/components/ui/card";
 import { TestResult } from "@/types/features";
 import ProcessingAnimation from "./ProcessingAnimation";
+import { useToast } from "@/components/ui/use-toast";
 
 interface Question {
   id: number;
@@ -160,11 +161,20 @@ interface CompatibilityAnalysis {
   recommendations: string[];
 }
 
+const ratingDescriptions = {
+  1: "Совершенно не согласен",
+  2: "Скорее не согласен",
+  3: "Нейтрально",
+  4: "Скорее согласен",
+  5: "Полностью согласен"
+};
+
 const QuestionnaireDialog = ({ open, onOpenChange, date1, date2, onComplete }: QuestionnaireDialogProps) => {
   const [currentQuestion, setCurrentQuestion] = useState(0);
-  const [answers, setAnswers] = useState<string[]>([]);
+  const [answers, setAnswers] = useState<Record<number, number>>({});
   const [stage, setStage] = useState<"self" | "partner">("self");
   const [isProcessing, setIsProcessing] = useState(false);
+  const { toast } = useToast();
 
   const currentStageQuestions = questions.filter(q => q.stage === stage);
   const totalQuestions = questions.length;
@@ -182,21 +192,21 @@ const QuestionnaireDialog = ({ open, onOpenChange, date1, date2, onComplete }: Q
     return "Последний шаг!";
   };
 
-  const calculateCategoryScore = (answers: string[], category: string): number => {
+  const calculateCategoryScore = (answers: Record<number, number>, category: string): number => {
     const categoryQuestions = questions.filter(q => q.category === category);
     const maxPossibleScore = categoryQuestions.reduce((acc, q) => acc + (5 * q.weight), 0);
     
     let totalScore = 0;
     categoryQuestions.forEach((question, index) => {
-      const answer = answers[questions.indexOf(question)];
+      const answer = answers[question.id];
       
       // Для числовых ответов
       if (question.options[0].match(/^\d+$/)) {
-        totalScore += parseInt(answer) * question.weight;
+        totalScore += answer * question.weight;
       } 
       // Для текстовых ответов
       else {
-        const optionIndex = question.options.indexOf(answer);
+        const optionIndex = question.options.indexOf(answer.toString());
         const normalizedScore = ((optionIndex + 1) / question.options.length) * 5;
         totalScore += normalizedScore * question.weight;
       }
@@ -260,7 +270,7 @@ const QuestionnaireDialog = ({ open, onOpenChange, date1, date2, onComplete }: Q
     const result = calculateFinalResult();
     onComplete(result);
     setIsProcessing(false);
-    setAnswers([]);
+    setAnswers({});
     setCurrentQuestion(0);
     setStage("self");
   };
@@ -278,11 +288,10 @@ const QuestionnaireDialog = ({ open, onOpenChange, date1, date2, onComplete }: Q
     }
   };
 
-  const handleAnswer = (answer: string) => {
-    const newAnswers = [...answers, answer];
-    setAnswers(newAnswers);
+  const handleAnswer = (answer: number) => {
+    setAnswers({ ...answers, [questions[currentQuestion].id]: answer });
 
-    if (newAnswers.length === questions.length) {
+    if (Object.keys(answers).length === questions.length) {
       setIsProcessing(true);
     } else {
       setCurrentQuestion(prev => prev + 1);
@@ -315,7 +324,7 @@ const QuestionnaireDialog = ({ open, onOpenChange, date1, date2, onComplete }: Q
 
   useEffect(() => {
     if (!open) {
-      setAnswers([]);
+      setAnswers({});
       setCurrentQuestion(0);
       setStage("self");
       setIsProcessing(false);
@@ -324,50 +333,99 @@ const QuestionnaireDialog = ({ open, onOpenChange, date1, date2, onComplete }: Q
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md bg-white shadow-lg backdrop-blur-lg border-none">
-        <DialogHeader>
-          <DialogTitle className="text-2xl font-pacifico text-accent text-center mb-4">
-            {isProcessing ? "Анализ совместимости" : getStageTitle()}
-          </DialogTitle>
-        </DialogHeader>
-        
-        {isProcessing ? (
-          <ProcessingAnimation onComplete={handleProcessingComplete} />
-        ) : (
-          <>
-            <div className="mb-6">
-              <Progress 
-                value={currentStageProgress} 
-                className="h-2 bg-gray-100"
-              />
-              <div className="mt-2 text-center space-y-1">
-                <span className="text-sm text-gray-600 block">
-                  Вопрос {currentQuestion + 1} из {totalQuestions}
-                </span>
-                <span className="text-sm text-accent font-medium block">
-                  {getMotivationalMessage()}
-                </span>
+      <DialogContent className="max-w-md">
+        {currentQuestion === 0 ? (
+          <div className="space-y-6">
+            <DialogHeader>
+              <DialogTitle className="text-2xl font-pacifico text-accent text-center">
+                Тест на совместимость в отношениях
+              </DialogTitle>
+            </DialogHeader>
+            
+            <div className="space-y-4">
+              <p className="text-gray-700">
+                Этот тест основан на современных психологических исследованиях и поможет вам:
+              </p>
+              <ul className="list-disc pl-5 space-y-2 text-gray-700">
+                <li>Понять уровень эмоциональной совместимости</li>
+                <li>Оценить качество общения</li>
+                <li>Выявить общие ценности</li>
+                <li>Получить персональные рекомендации</li>
+              </ul>
+              
+              <div className="bg-blue-50 p-4 rounded-lg">
+                <h4 className="font-semibold mb-2">Как отвечать на вопросы:</h4>
+                <p className="text-sm text-gray-600">
+                  Оцените каждое утверждение по шкале от 1 до 5, где:
+                </p>
+                <ul className="text-sm space-y-1 mt-2">
+                  <li>1 — Совершенно не согласен</li>
+                  <li>3 — Нейтрально</li>
+                  <li>5 — Полностью согласен</li>
+                </ul>
               </div>
             </div>
 
-            <Card className="p-6 bg-white shadow-sm border border-gray-100 animate-fade-in">
-              <h3 className="text-lg font-semibold mb-6 text-gray-800">
-                {questions[currentQuestion].text}
-              </h3>
-              <div className="space-y-3">
-                {questions[currentQuestion].options.map((option, index) => (
-                  <Button
-                    key={index}
-                    variant="outline"
-                    className="w-full justify-start text-left py-4 px-6 bg-white hover:bg-accent/5 hover:border-accent transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] text-gray-700 hover:text-accent"
-                    onClick={() => handleAnswer(option)}
-                  >
-                    {option}
-                  </Button>
-                ))}
+            <Button 
+              onClick={() => setCurrentQuestion(1)}
+              className="w-full bg-accent hover:bg-accent/90 text-white"
+            >
+              Начать тест
+            </Button>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            <DialogHeader>
+              <div className="w-full bg-gray-200 h-2 rounded-full mb-4">
+                <div 
+                  className="bg-accent h-2 rounded-full transition-all"
+                  style={{ width: `${(currentQuestion / questions.length) * 100}%` }}
+                />
               </div>
-            </Card>
-          </>
+              <DialogTitle className="text-xl font-medium">
+                Вопрос {currentQuestion} из {questions.length}
+              </DialogTitle>
+              <DialogDescription className="text-lg mt-4">
+                {questions[currentQuestion - 1].text}
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-3">
+              {[1, 2, 3, 4, 5].map((rating) => (
+                <button
+                  key={rating}
+                  onClick={() => handleAnswer(rating)}
+                  className={`w-full p-4 rounded-lg border transition-all ${
+                    answers[questions[currentQuestion - 1].id] === rating
+                      ? "bg-accent text-white border-accent"
+                      : "bg-white hover:bg-gray-50 border-gray-200"
+                  }`}
+                >
+                  <div className="flex justify-between items-center">
+                    <span className="text-lg">{ratingDescriptions[rating]}</span>
+                    <span className="text-sm opacity-70">{rating}/5</span>
+                  </div>
+                </button>
+              ))}
+            </div>
+
+            <div className="flex justify-between gap-4">
+              <Button
+                variant="outline"
+                onClick={() => setCurrentQuestion(prev => prev - 1)}
+                disabled={currentQuestion === 1}
+              >
+                Назад
+              </Button>
+              <Button
+                onClick={handleAnswer(0)}
+                disabled={!answers[questions[currentQuestion - 1].id]}
+                className="flex-1 bg-accent hover:bg-accent/90 text-white"
+              >
+                {currentQuestion === questions.length ? "Завершить" : "Далее"}
+              </Button>
+            </div>
+          </div>
         )}
       </DialogContent>
     </Dialog>
