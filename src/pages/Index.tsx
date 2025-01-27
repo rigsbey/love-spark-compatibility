@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import DateInput from "@/components/DateInput";
 import CompatibilityResult from "@/components/CompatibilityResult";
 import FloatingStars from "@/components/FloatingStars";
+import QuestionnaireDialog from "@/components/QuestionnaireDialog";
 import { useToast } from "@/components/ui/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { TestResult } from "@/types/features";
@@ -11,34 +12,46 @@ const Index = () => {
   const [date1, setDate1] = useState("");
   const [date2, setDate2] = useState("");
   const [result, setResult] = useState<TestResult | null>(null);
-  const [isPremium] = useState(false); // This would be connected to auth state in the future
+  const [isPremium] = useState(false);
+  const [isQuestionnaireOpen, setIsQuestionnaireOpen] = useState(false);
   const { toast } = useToast();
 
-  const calculateCompatibility = () => {
+  const calculateQuickCompatibility = () => {
     if (!date1 || !date2) {
       toast({
-        title: "Please enter both dates",
-        description: "We need both birth dates to calculate compatibility",
+        title: "Пожалуйста, введите обе даты",
+        description: "Для расчета совместимости необходимы обе даты рождения",
         variant: "destructive",
       });
       return;
     }
 
-    // Simple compatibility calculation for demo
     const timestamp1 = new Date(date1).getTime();
     const timestamp2 = new Date(date2).getTime();
     const difference = Math.abs(timestamp1 - timestamp2);
-    const maxDiff = 1000 * 60 * 60 * 24 * 365 * 10; // 10 years
+    const maxDiff = 1000 * 60 * 60 * 24 * 365 * 10;
     const compatibility = Math.round(Math.max(0, Math.min(100, 100 - (difference / maxDiff) * 100)));
     
     const result: TestResult = {
       compatibility,
-      strengths: ["Strong emotional connection", "Great communication potential"],
-      growthAreas: ["Different life experiences", "Varying perspectives"],
-      premiumInsights: isPremium ? ["Deep psychological compatibility", "Long-term relationship forecast"] : undefined
+      strengths: ["Эмоциональная связь", "Потенциал для общения"],
+      growthAreas: ["Разный жизненный опыт", "Различные перспективы"],
+      premiumInsights: isPremium ? ["Глубокая психологическая совместимость", "Прогноз долгосрочных отношений"] : undefined
     };
     
     setResult(result);
+  };
+
+  const startFullTest = () => {
+    if (!date1 || !date2) {
+      toast({
+        title: "Пожалуйста, введите обе даты",
+        description: "Для начала теста необходимы обе даты рождения",
+        variant: "destructive",
+      });
+      return;
+    }
+    setIsQuestionnaireOpen(true);
   };
 
   const resetCalculator = () => {
@@ -52,54 +65,63 @@ const Index = () => {
       <FloatingStars />
       <div className="z-10 w-full max-w-md">
         <h1 className="text-4xl md:text-5xl font-pacifico text-accent text-center mb-8">
-          Love Compatibility
+          Совместимость в любви
         </h1>
         
         {result === null ? (
           <div className="bg-white/90 backdrop-blur-sm p-6 rounded-xl shadow-lg space-y-6">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-2xl font-pacifico text-accent">Basic Test</h2>
+              <h2 className="text-2xl font-pacifico text-accent">Тест</h2>
               {!isPremium && (
                 <Badge variant="secondary" className="bg-custom-pink">
-                  Free
+                  Бесплатно
                 </Badge>
               )}
             </div>
             <DateInput
-              label="Your Birth Date"
+              label="Ваша дата рождения"
               value={date1}
               onChange={setDate1}
             />
             <DateInput
-              label="Partner's Birth Date"
+              label="Дата рождения партнера"
               value={date2}
               onChange={setDate2}
             />
-            <Button
-              onClick={calculateCompatibility}
-              className="w-full bg-primary hover:bg-primary-hover text-white text-lg py-6"
-            >
-              Calculate Compatibility
-            </Button>
+            <div className="space-y-3">
+              <Button
+                onClick={calculateQuickCompatibility}
+                className="w-full bg-primary hover:bg-primary-hover text-white text-lg py-6"
+              >
+                Быстрый расчет
+              </Button>
+              <Button
+                onClick={startFullTest}
+                variant="outline"
+                className="w-full border-accent text-accent hover:bg-accent hover:text-white text-lg py-6"
+              >
+                Пройти полный тест
+              </Button>
+            </div>
             {!isPremium && (
               <div className="mt-4 p-4 bg-custom-blue/20 rounded-lg">
                 <h3 className="text-lg font-semibold text-accent mb-2">
-                  🌟 Unlock Premium Features
+                  🌟 Откройте Premium возможности
                 </h3>
                 <ul className="text-sm space-y-2">
-                  <li>✨ Extended compatibility analysis</li>
-                  <li>📊 Detailed relationship insights</li>
-                  <li>💫 Daily relationship forecasts</li>
+                  <li>✨ Расширенный анализ совместимости</li>
+                  <li>📊 Детальные инсайты об отношениях</li>
+                  <li>💫 Ежедневные прогнозы</li>
                 </ul>
                 <Button
                   variant="outline"
                   className="mt-3 w-full border-accent text-accent hover:bg-accent hover:text-white"
                   onClick={() => toast({
-                    title: "Coming Soon!",
-                    description: "Premium features will be available soon.",
+                    title: "Скоро!",
+                    description: "Premium функции будут доступны в ближайшее время.",
                   })}
                 >
-                  Upgrade to Premium
+                  Активировать Premium
                 </Button>
               </div>
             )}
@@ -112,6 +134,14 @@ const Index = () => {
           />
         )}
       </div>
+
+      <QuestionnaireDialog
+        open={isQuestionnaireOpen}
+        onOpenChange={setIsQuestionnaireOpen}
+        date1={date1}
+        date2={date2}
+        onComplete={setResult}
+      />
     </div>
   );
 };
